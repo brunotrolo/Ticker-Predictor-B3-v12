@@ -1,10 +1,11 @@
 # ==========================================================
-# Análise Didática B3 + ML — v12 (LSTM + Optuna + Indicadores Avançados + PDF)
-# Mantém todas as funcionalidades da v11 e adiciona:
+# Análise Didática B3 + ML — v12
+# Mantém tudo da v11 e adiciona:
 # - LSTM multivariado (opcional)
 # - Tuning com Optuna (opcional)
 # - Indicadores ADX, MACD, Bollinger
 # - Exportação de relatório em PDF
+# - ABA de Indicadores com explicações didáticas (NOVO nesta entrega)
 # ==========================================================
 import streamlit as st
 import numpy as np
@@ -17,7 +18,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 
-# Utilitários B3 do projeto (iguais à v11)
+# Utilitários B3 do projeto
+# (certifique-se de que b3_utils.py está presente como nas versões anteriores)
 from b3_utils import load_b3_tickers, ensure_sa_suffix, is_known_b3_ticker, search_b3
 
 # ML tradicional
@@ -77,7 +79,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# Helpers básicos de dados e indicadores (v11) + indicadores avançados (v12)
+# Helpers básicos de dados e indicadores + avançados
 # ----------------------------------------------------------
 @st.cache_data(ttl=3600)
 def fetch_data(ticker, start, end):
@@ -121,7 +123,7 @@ def bollinger(close, window=20, num_std=2):
     return ma, upper, lower
 
 def adx(high, low, close, window=14):
-    # Cálculo "puro" do ADX (sem TALib)
+    # Cálculo simples do ADX sem TA-Lib
     df = pd.DataFrame({"high": high, "low": low, "close": close}).copy()
     df["+DM"] = (df["high"] - df["high"].shift(1)).clip(lower=0)
     df["-DM"] = (df["low"].shift(1) - df["low"]).clip(lower=0)
@@ -136,7 +138,7 @@ def adx(high, low, close, window=14):
     atr = tr.rolling(window).mean()
     plus_di = 100 * (df["+DM"].rolling(window).sum() / atr)
     minus_di = 100 * (df["-DM"].rolling(window).sum() / atr)
-    dx = ( (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan) ) * 100
+    dx = ((plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)) * 100
     adx_val = dx.rolling(window).mean()
     return plus_di, minus_di, adx_val
 
@@ -151,7 +153,7 @@ def add_indicators(df, want_sma50=False, want_sma200=False, want_adv=False):
         df["SMA200"] = sma(df["Close"], 200)
     df["RSI14"] = rsi(df["Close"])
 
-    # Avançados
+    # Avançados (opcionais)
     if want_adv:
         macd_line, macd_signal, macd_hist = macd(df["Close"])
         bb_mid, bb_up, bb_low = bollinger(df["Close"])
@@ -168,7 +170,7 @@ def annotate_events(df):
     return ev
 
 # ----------------------------------------------------------
-# Feature engineering para ML clássico (mesmo da v11)
+# Feature engineering para ML clássico
 # ----------------------------------------------------------
 def build_features(df, horizon=1):
     d = df.copy()
@@ -390,7 +392,7 @@ def make_trades_table_from_signals(dates, prices, signals, min_hold=1):
     return df_trades.sort_values("Retorno (%)", ascending=False).reset_index(drop=True)
 
 # ----------------------------------------------------------
-# Sidebar: estado, presets, parâmetros (mesmo da v11) + toggles avançados
+# Sidebar: estado, presets, parâmetros
 # ----------------------------------------------------------
 b3 = load_b3_tickers()
 st.sidebar.header("⚙️ Configurações")
@@ -565,7 +567,7 @@ if regime:
     st.caption(regime)
 
 # ----------------------------------------------------------
-# Abas principais (v11) + novas abas (v12)
+# Abas principais
 # ----------------------------------------------------------
 base_tabs = ["📈 Gráfico", "📚 Indicadores", "🤖 ML", "🧪 Backtest",
              "ℹ️ Glossário", "📊 Confiabilidade & Trades", "🧠 NeuralProphet"]
@@ -591,7 +593,7 @@ with tab1:
                 mode="markers", marker=dict(size=8, symbol="triangle-up"),
                 name="Afastado da SMA20 (−7% ou mais)"
             ))
-        # Sinais ML
+        # Sinais ML (se já treinado)
         if st.session_state.get("ml_trained") and st.session_state.get("ml_sig") is not None:
             sig = st.session_state["ml_sig"]
             dates_oos = st.session_state["ml_dates"]
@@ -649,8 +651,30 @@ with tab1:
     plot_rsi_tab(df)
     st.info("Dica: cole PETR4, VALE3, ITUB4... Se faltar .SA, o app adiciona automaticamente.")
 
-# ---- Tab 2: Indicadores (didático) — igual à v11
+# ---- Tab 2: Indicadores (didático) — AGORA COM EXPLICAÇÕES DOS NOVOS INDICADORES
 with tab2:
+    st.subheader("📘 Indicadores Técnicos (inclui extras)")
+    # Resumo didático dos indicadores (NOVO)
+    st.markdown("""
+- **SMA20 / SMA50 / SMA200** — médias móveis de **curto, médio e longo prazo**.  
+  Mostram a tendência geral dos preços e ajudam a visualizar se a ação está **forte** (acima da média) ou **fraca** (abaixo).
+
+- **RSI(14)** — o “termômetro de força” do mercado.  
+  Valores **acima de 70** indicam **sobrecompra** (ação pode estar cara); **abaixo de 30**, **sobrevenda** (pode estar barata).
+
+- **MACD (Moving Average Convergence Divergence)** — mede o **momentum** do preço.  
+  A diferença entre médias móveis exponenciais (rápida/lenta) indica aceleração; o cruzamento entre **linha MACD** e **linha de sinal** pode sugerir **início/fim de tendências**.  
+  O **histograma** mostra a força do momentum (diferença MACD − sinal).
+
+- **Bandas de Bollinger** — representam **volatilidade** ao redor da média.  
+  As bandas **se expandem** quando a volatilidade aumenta e **se contraem** quando ela diminui.  
+  Toques na banda superior/inferior podem sinalizar **extensão** (exagero de alta/baixa).
+
+- **ADX (+DI / −DI)** — mede **força da tendência** e indica **direção**.  
+  **ADX > 25** costuma indicar tendência forte. **+DI** sugere pressão compradora; **−DI**, pressão vendedora.
+""")
+
+    # Parte didática da SMA/RSI já existente
     st.markdown("### 💡 O que o gráfico está tentando te contar")
     st.markdown("#### 🪜 1. Entendendo a SMA20 — “a linha da média”")
     st.markdown("A **SMA20** é a média dos últimos 20 fechamentos — mostra a direção geral.")
@@ -672,7 +696,7 @@ with tab2:
     }))
     st.markdown(f"RSI(14) atual: **{rsi_val:.1f}**.")
 
-    st.markdown("#### 🧩 3. Juntando as duas informações")
+    st.markdown("#### 🧩 3. Juntando as informações")
     if (delta20 <= -2) and (rsi_val <= 35):
         st.info("Caiu bastante e **pode dar um respiro**.")
     elif (delta20 >= 2) and (rsi_val >= 65):
@@ -680,34 +704,7 @@ with tab2:
     else:
         st.info("**Equilíbrio** — sem sinal forte.")
 
-with tab2:
-    st.subheader("📘 Indicadores Técnicos (inclui extras)")
-
-    st.markdown("""
-    - **SMA20 / SMA50 / SMA200** — médias móveis de **curto, médio e longo prazo**.  
-      Mostram a tendência geral dos preços e ajudam a visualizar se a ação está **forte ou fraca**.
-
-    - **RSI(14)** — o “termômetro de força” do mercado.  
-      Valores **acima de 70** indicam **sobrecompra** (ação pode estar cara).  
-      Valores **abaixo de 30** indicam **sobrevenda** (ação pode estar barata).
-
-    - **MACD (Moving Average Convergence Divergence)** — mede o **momentum** do preço.  
-      A diferença entre duas médias móveis (rápida e lenta) indica se o preço está **acelerando** para cima ou para baixo.  
-      O cruzamento entre a **linha MACD** e a **linha de sinal** pode indicar **início ou fim de tendências**.
-
-    - **Bandas de Bollinger** — mostram o **nível de volatilidade**.  
-      Elas se expandem quando o mercado está volátil e se contraem quando está calmo.  
-      O preço tocar a banda superior pode indicar **alta esticada**, enquanto tocar a inferior pode indicar **exagero na queda**.
-
-    - **ADX (+DI / −DI)** — mede a **força e a direção** da tendência.  
-      Um **ADX alto (acima de 25)** indica tendência forte.  
-      O **+DI** representa pressão compradora e o **−DI**, pressão vendedora.
-    """)
-
-    st.info("💡 Dica: combine os indicadores — por exemplo, RSI em sobrevenda + preço abaixo da SMA20 pode indicar um possível ponto de reversão.")
-
-
-# ---- Tab 3: ML — igual à v11 (treino/validação, KPIs, callouts)
+# ---- Tab 3: ML (treino/validação, KPIs, callouts)
 with tab3:
     st.subheader("Previsão (ML)")
     st.caption(f"Horizonte: **{int(st.session_state['horizon'])}d** • Limiar: **{st.session_state['thr_method_label']}** • min_prob: **{st.session_state['min_prob']:.2f}**")
@@ -793,7 +790,7 @@ with tab3:
         else:
             st.success(f"Sinal com **{msg_auc}** ({msg_brier}). Ajuste **min_prob** e **banda neutra** para dosar seletividade vs. nº de trades.")
 
-# ---- Tab 4: Backtest (igual v11)
+# ---- Tab 4: Backtest
 with tab4:
     if not (st.session_state.get("ml_trained") and st.session_state.get("ml_cum_strat") is not None):
         st.info("Treine o modelo na aba **ML** para ver o backtest.")
@@ -811,7 +808,7 @@ with tab4:
         c2.metric("Vol (por passo)", f"{vol*100:.2f}%")
         st.caption("Inclui custos por lado e holding.")
 
-# ---- Tab 5: Glossário (igual v11)
+# ---- Tab 5: Glossário
 with tab5:
     st.markdown("### 📚 Glossário rápido")
     st.markdown("""
@@ -825,7 +822,7 @@ with tab5:
 - **bps**: basis points; 10 bps = 0,10%.
 """)
 
-# ---- Tab 6: Confiabilidade & Trades (igual v11)
+# ---- Tab 6: Confiabilidade & Trades
 with tab6:
     st.subheader("📊 Confiabilidade & Trades")
     st.caption("Valide probabilidades (calibração) e veja as operações OOS.")
@@ -859,7 +856,7 @@ with tab6:
         csv = trades_df.to_csv(index=False).encode("utf-8")
         st.download_button("Baixar trades (CSV)", data=csv, file_name="oos_trades.csv", mime="text/csv")
 
-# ---- Tab 7: NeuralProphet (histórico + futuro + métricas e scatter) — igual seu v11.2
+# ---- Tab 7: NeuralProphet (histórico + futuro + métricas e scatter)
 with tab7:
     st.subheader("🧠 NeuralProphet — previsão de tendência")
     st.caption("Previsões históricas (in-sample) e futuras (out-of-sample) com métricas R²/MAE/MAPE.")
@@ -932,7 +929,7 @@ with tab7:
         except Exception as e:
             st.error(f"Falha ao rodar NeuralProphet: {e}")
 
-# ---- Tab 8: LSTM multivariado (novo)
+# ---- Tab 8: LSTM multivariado (experimental)
 with tab8:
     st.subheader("🔮 LSTM Multivariado (experimental)")
     st.caption("Prevê retorno futuro usando janelas temporais e múltiplas variáveis (Close, RSI, distâncias às médias etc.).")
@@ -951,7 +948,6 @@ with tab8:
 
         def make_lstm_dataset(dfin, lookback=30, horizon=1):
             d = dfin.copy()
-            # features numéricas
             d["ret_1"]  = d["Close"].pct_change(1)
             d["ret_3"]  = d["Close"].pct_change(3)
             d["ret_5"]  = d["Close"].pct_change(5)
@@ -961,7 +957,6 @@ with tab8:
             d["rsi"] = d["RSI14"]
             feats = ["ret_1","ret_3","ret_5","dist20","dist200","rsi"]
             d = d.dropna(subset=feats).reset_index(drop=True)
-            # Target = retorno futuro (regressão)
             d["y_target"] = d["Close"].shift(-horizon)/d["Close"] - 1.0
             d = d.dropna(subset=["y_target"]).reset_index(drop=True)
 
@@ -971,7 +966,7 @@ with tab8:
                 y.append(d.loc[i+lookback, "y_target"])
             Xseq, y = np.array(Xseq, dtype=np.float32), np.array(y, dtype=np.float32)
             dates = d.loc[lookback:, "Date"].values if "Date" in d.columns else None
-            last_feats = d.loc[len(d)-lookback:, feats].values  # para previsão out-of-sample
+            last_feats = d.loc[len(d)-lookback:, feats].values
             return Xseq, y, dates, last_feats, feats
 
         if do_train:
@@ -993,13 +988,12 @@ with tab8:
                     ])
                     model.compile(optimizer="adam", loss="mae")
                     es = keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
-                    hist = model.fit(Xtr, ytr, validation_data=(Xte, yte), epochs=epochs, batch_size=32, callbacks=[es], verbose=0)
+                    _ = model.fit(Xtr, ytr, validation_data=(Xte, yte), epochs=epochs, batch_size=32, callbacks=[es], verbose=0)
 
                     # Métricas simples no conjunto de teste
                     ypred = model.predict(Xte, verbose=0).ravel()
                     mae = float(np.mean(np.abs(ypred - yte)))
                     mape = float(np.mean(np.abs((ypred - yte) / (np.abs(yte)+1e-9))))
-                    # R² em retornos
                     ss_res = float(np.sum((yte - ypred)**2))
                     ss_tot = float(np.sum((yte - np.mean(yte))**2) + 1e-12)
                     r2_ret = 1.0 - ss_res/ss_tot
@@ -1010,10 +1004,7 @@ with tab8:
                     c3.metric("R² (retornos)", f"{r2_ret:.3f}")
 
                     # Previsão out-of-sample (próximo ponto)
-                    x_next = np.array([last_feats[:-1]], dtype=np.float32) if last_feats.shape[0] > lookback else np.array([last_feats], dtype=np.float32)
-                    if x_next.shape[1] != lookback:
-                        # fallback: usa últimas 'lookback' linhas disponíveis
-                        x_next = np.array([Xseq[-1]], dtype=np.float32)
+                    x_next = np.array([Xseq[-1]], dtype=np.float32)
                     y_next = float(model.predict(x_next, verbose=0).ravel()[0])
                     st.metric(f"Retorno previsto (próximos {int(horizon_lstm)}d)", f"{y_next*100:.2f}%")
                     st.caption("Sinal: positivo sugere alta; negativo sugere baixa no horizonte escolhido.")
@@ -1035,30 +1026,23 @@ with tab9:
         go_opt = st.button("Rodar estudo (experimental)")
 
         def prepare_for_optuna(df_, horizon=1):
-            # reaproveita dataset do LSTM
-            def make_lstm_dataset(dfin, lookback=30):
-                d = dfin.copy()
-                d["ret_1"]  = d["Close"].pct_change(1)
-                d["ret_3"]  = d["Close"].pct_change(3)
-                d["ret_5"]  = d["Close"].pct_change(5)
-                d["dist20"] = d["Close"]/d["SMA20"] - 1
-                if "SMA200" not in d.columns: d["SMA200"] = sma(d["Close"],200)
-                d["dist200"] = d["Close"]/d["SMA200"] - 1
-                d["rsi"] = d["RSI14"]
-                feats = ["ret_1","ret_3","ret_5","dist20","dist200","rsi"]
-                d = d.dropna(subset=feats).reset_index(drop=True)
-                d["y_target"] = d["Close"].shift(-horizon)/d["Close"] - 1.0
-                d = d.dropna(subset=["y_target"]).reset_index(drop=True)
-                return d, feats
-
-            d, feats = make_lstm_dataset(df_, lookback=30)
-            if len(d) < 300: return None, None
+            d = df_.copy()
+            d["ret_1"]  = d["Close"].pct_change(1)
+            d["ret_3"]  = d["Close"].pct_change(3)
+            d["ret_5"]  = d["Close"].pct_change(5)
+            d["dist20"] = d["Close"]/d["SMA20"] - 1
+            if "SMA200" not in d.columns: d["SMA200"] = sma(d["Close"],200)
+            d["dist200"] = d["Close"]/d["SMA200"] - 1
+            d["rsi"] = d["RSI14"]
+            feats = ["ret_1","ret_3","ret_5","dist20","dist200","rsi"]
+            d = d.dropna(subset=feats).reset_index(drop=True)
+            d["y_target"] = d["Close"].shift(-horizon)/d["Close"] - 1.0
+            d = d.dropna(subset=["y_target"]).reset_index(drop=True)
             return d, feats
 
         if go_opt:
-            base = df.copy()
-            data_for_opt, feats = prepare_for_optuna(base, horizon=int(horizon_opt))
-            if data_for_opt is None:
+            data_for_opt, feats = prepare_for_optuna(df, horizon=int(horizon_opt))
+            if len(data_for_opt) < 300:
                 st.warning("Dados insuficientes para estudo. Amplie o período.")
             else:
                 def objective(trial):
@@ -1070,7 +1054,7 @@ with tab9:
 
                     # monta janelas
                     d = data_for_opt.copy()
-                    # refaz janelas com lookback do trial
+                    # janelas com lookback do trial
                     Xseq, yseq = [], []
                     for i in range(len(d) - lookback):
                         Xseq.append(d.loc[i:i+lookback-1, feats].values)
@@ -1099,7 +1083,7 @@ with tab9:
                 st.success(f"Melhor trial: {study.best_trial.number} — MAE={study.best_value:.6f}")
                 st.json(study.best_trial.params)
 
-# ---- Tab 10: Exportação PDF
+# ---- Tab 10: Exportação PDF (corrigido sem 'nonlocal')
 with tab10:
     st.subheader("🗂️ Exportar relatório em PDF")
     st.caption("Gera um sumário didático (preço, SMA/RSI, KPIs de ML, configurações e observações).")
@@ -1116,13 +1100,13 @@ with tab10:
             c = canvas.Canvas(file_path, pagesize=A4)
             W, H = A4
 
-            # 👉 Helper sem 'nonlocal': retorna a nova posição y
-            def draw_line(c, text, y_pos, dy=0.8*cm, size=11, bold=False):
+            # Helper que retorna o novo y (sem nonlocal)
+            def draw_line(ca, text, y_pos, dy=0.8*cm, size=11, bold=False):
                 if bold:
-                    c.setFont("Helvetica-Bold", size)
+                    ca.setFont("Helvetica-Bold", size)
                 else:
-                    c.setFont("Helvetica", size)
-                c.drawString(2*cm, y_pos, text)
+                    ca.setFont("Helvetica", size)
+                ca.drawString(2*cm, y_pos, text)
                 return y_pos - dy
 
             y_pos = H - 2*cm  # posição inicial
