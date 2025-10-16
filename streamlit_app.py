@@ -680,6 +680,33 @@ with tab2:
     else:
         st.info("**Equilíbrio** — sem sinal forte.")
 
+with tab2:
+    st.subheader("📘 Indicadores Técnicos (inclui extras)")
+
+    st.markdown("""
+    - **SMA20 / SMA50 / SMA200** — médias móveis de **curto, médio e longo prazo**.  
+      Mostram a tendência geral dos preços e ajudam a visualizar se a ação está **forte ou fraca**.
+
+    - **RSI(14)** — o “termômetro de força” do mercado.  
+      Valores **acima de 70** indicam **sobrecompra** (ação pode estar cara).  
+      Valores **abaixo de 30** indicam **sobrevenda** (ação pode estar barata).
+
+    - **MACD (Moving Average Convergence Divergence)** — mede o **momentum** do preço.  
+      A diferença entre duas médias móveis (rápida e lenta) indica se o preço está **acelerando** para cima ou para baixo.  
+      O cruzamento entre a **linha MACD** e a **linha de sinal** pode indicar **início ou fim de tendências**.
+
+    - **Bandas de Bollinger** — mostram o **nível de volatilidade**.  
+      Elas se expandem quando o mercado está volátil e se contraem quando está calmo.  
+      O preço tocar a banda superior pode indicar **alta esticada**, enquanto tocar a inferior pode indicar **exagero na queda**.
+
+    - **ADX (+DI / −DI)** — mede a **força e a direção** da tendência.  
+      Um **ADX alto (acima de 25)** indica tendência forte.  
+      O **+DI** representa pressão compradora e o **−DI**, pressão vendedora.
+    """)
+
+    st.info("💡 Dica: combine os indicadores — por exemplo, RSI em sobrevenda + preço abaixo da SMA20 pode indicar um possível ponto de reversão.")
+
+
 # ---- Tab 3: ML — igual à v11 (treino/validação, KPIs, callouts)
 with tab3:
     st.subheader("Previsão (ML)")
