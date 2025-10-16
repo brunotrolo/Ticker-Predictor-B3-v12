@@ -653,6 +653,76 @@ with tab1:
 
 # ---- Tab 2: Indicadores Técnicos (didático + explicações)
 with tab2:
+    st.markdown("### 💡 O que o gráfico está tentando te contar")
+    st.markdown("#### 🪜 1. Entendendo a SMA20 — “a linha da média”")
+    st.markdown(
+        "A **SMA20** é como a média dos últimos 20 preços de fechamento — a **linha de equilíbrio** que mostra a direção geral do preço.\n\n"
+        "• Se o **preço está acima** da linha, há **força** (tendência de alta).\n"
+        "• Se **está abaixo**, há **fraqueza** (tendência de queda)."
+    )
+    st.markdown(f"👉 Em **{st.session_state['ticker_select']}**, o preço atual é **R$ {price:,.2f}**, cerca de **{delta20:+.2f}%** vs. SMA20.".replace(",", "X").replace(".", ",").replace("X","."))
+
+    if delta20 <= -2:
+        st.warning("A ação está **abaixo da média** — fraqueza de curto prazo.")
+    elif delta20 < 2:
+        st.info("O preço está **próximo da média** — mercado **em equilíbrio**.")
+    else:
+        st.success("O preço está **acima da média** — **força** de curto prazo.")
+
+    st.caption("O preço pode ficar afastado da média; isso pode indicar **exagero** (como uma corda esticada).")
+
+    st.markdown("#### ⚖️ 2. Entendendo o RSI(14) — “o termômetro da força”")
+    st.markdown("O **RSI** (0–100) indica quem domina: compradores ou vendedores.")
+    st.table(pd.DataFrame({
+        "Faixa": ["70 a 100", "50", "0 a 30"],
+        "Situação": ["Sobrecompra", "Neutro", "Sobrevenda"],
+        "O que significa": ["Subiu rápido demais — pode corrigir pra baixo.", "Equilíbrio entre compra e venda.", "Caiu rápido demais — pode reagir pra cima."]
+    }))
+    st.markdown(f"Para **{st.session_state['ticker_select']}**, o **RSI(14)** está em **{rsi_val:.1f}**.")
+    if rsi_val >= 70:
+        st.warning("**Sobrecompra** — pode corrigir.")
+    elif rsi_val <= 30:
+        st.success("**Sobrevenda** — pode reagir.")
+    else:
+        st.info("**Neutro** — equilíbrio.")
+
+    st.markdown("#### 🧩 3. Juntando as duas informações")
+    if (delta20 <= -2) and (rsi_val <= 35):
+        st.info("“Caiu bastante e **pode dar um respiro** em breve.” (pressão de venda diminuindo)")
+    elif (delta20 >= 2) and (rsi_val >= 65):
+        st.warning("“Subiu bastante e **pode descansar**.” (compra esticada)")
+    else:
+        st.info("“Quadro **equilibrado** — sem sinal forte de excesso.”")
+
+    st.markdown("#### 💬 Em resumo")
+    resumo_rows = []
+    resumo_rows.append(["SMA20", "Preço vs. média 20d",
+        "Bem abaixo — pressionada." if delta20 <= -7 else
+        "Abaixo — tendência fraca." if delta20 < -2 else
+        "Perto — equilíbrio." if delta20 < 2 else
+        "Acima — força." if delta20 < 7 else
+        "Bem acima — atenção a exageros."
+    ])
+    resumo_rows.append(["RSI(14)", "Energia do mercado (0–100)",
+        "Sobrevenda (≤30) — pode reagir." if rsi_val <= 30 else
+        "Neutro (30–70) — equilíbrio." if rsi_val < 70 else
+        "Sobrecompra (≥70) — pode corrigir."
+    ])
+    resumo_rows.append(["Conclusão geral", "Preço + RSI",
+        "Fraca, mas pode haver repique." if (delta20 <= -2 and rsi_val <= 35) else
+        "Forte, atenção a correções." if (delta20 >= 2 and rsi_val >= 65) else
+        "Equilíbrio — sem sinal forte."
+    ])
+    st.table(pd.DataFrame(resumo_rows, columns=["Indicador","O que está mostrando","Significado prático"]))
+
+    with st.expander("🕯️ Como ler candles (clique para ver)"):
+        st.markdown("""
+- **Candle** mostra Abertura, Máxima, Mínima e Fechamento do período.
+- Corpo cheio: fechou **acima** da abertura (alta). Corpo vazio/escuro: **abaixo** (baixa).
+- **Pavios** indicam onde o preço foi mas **não ficou**.
+- Sequências fortes indicam **impulso**; sombras longas sugerem **reversões**.
+""")
+
     st.subheader("📘 Indicadores Técnicos (inclui extras)")
     st.caption("Nesta aba você encontra explicações simples sobre cada indicador usado no gráfico.")
 
