@@ -651,58 +651,50 @@ with tab1:
     plot_rsi_tab(df)
     st.info("Dica: cole PETR4, VALE3, ITUB4... Se faltar .SA, o app adiciona automaticamente.")
 
-# ---- Tab 2: Indicadores (didático) — AGORA COM EXPLICAÇÕES DOS NOVOS INDICADORES
+# ---- Tab 2: Indicadores Técnicos (didático + explicações)
 with tab2:
     st.subheader("📘 Indicadores Técnicos (inclui extras)")
-    # Resumo didático dos indicadores (NOVO)
+    st.caption("Nesta aba você encontra explicações simples sobre cada indicador usado no gráfico.")
+
     st.markdown("""
-- **SMA20 / SMA50 / SMA200** — médias móveis de **curto, médio e longo prazo**.  
-  Mostram a tendência geral dos preços e ajudam a visualizar se a ação está **forte** (acima da média) ou **fraca** (abaixo).
+### 📈 SMA20 / SMA50 / SMA200
+Médias móveis de **curto (20)**, **médio (50)** e **longo prazo (200)**.  
+Mostram a **tendência geral** dos preços — se o preço está **acima**, o ativo tende a estar forte; se está **abaixo**, tende a estar fraco.
 
-- **RSI(14)** — o “termômetro de força” do mercado.  
-  Valores **acima de 70** indicam **sobrecompra** (ação pode estar cara); **abaixo de 30**, **sobrevenda** (pode estar barata).
+### ⚖️ RSI(14)
+O **Índice de Força Relativa** funciona como um **termômetro de força**.  
+- **Acima de 70** → sobrecompra (ativo pode estar caro).  
+- **Abaixo de 30** → sobrevenda (ativo pode estar barato).  
+Ajuda a detectar **exageros** no curto prazo.
 
-- **MACD (Moving Average Convergence Divergence)** — mede o **momentum** do preço.  
-  A diferença entre médias móveis exponenciais (rápida/lenta) indica aceleração; o cruzamento entre **linha MACD** e **linha de sinal** pode sugerir **início/fim de tendências**.  
-  O **histograma** mostra a força do momentum (diferença MACD − sinal).
+### 📊 MACD (Moving Average Convergence Divergence)
+Mede o **momentum** do preço.  
+É composto por:
+- **Linha MACD** (diferença entre médias rápidas e lentas),
+- **Linha de sinal** (média da MACD),
+- **Histograma** (MACD − sinal).  
+Quando a linha MACD cruza **acima da linha de sinal**, pode indicar **início de alta**.  
+Quando cruza **para baixo**, pode sinalizar **fraqueza**.
 
-- **Bandas de Bollinger** — representam **volatilidade** ao redor da média.  
-  As bandas **se expandem** quando a volatilidade aumenta e **se contraem** quando ela diminui.  
-  Toques na banda superior/inferior podem sinalizar **extensão** (exagero de alta/baixa).
+### 💡 Bandas de Bollinger
+Mostram o **nível de volatilidade** do ativo.  
+- **Bandas se expandem** → volatilidade alta.  
+- **Bandas se contraem** → mercado mais calmo.  
+Quando o preço toca as bordas, pode indicar **exageros temporários**.
 
-- **ADX (+DI / −DI)** — mede **força da tendência** e indica **direção**.  
-  **ADX > 25** costuma indicar tendência forte. **+DI** sugere pressão compradora; **−DI**, pressão vendedora.
+### 🧭 ADX (+DI / −DI)
+Mede a **força da tendência** e sua **direção**:  
+- **ADX > 25** → tendência forte.  
+- **+DI** representa pressão **compradora**.  
+- **−DI** representa pressão **vendedora**.
+
+---
+
+💬 **Dica:** Combine indicadores para interpretações mais robustas — por exemplo:  
+📉 RSI < 30 + preço abaixo da SMA20 → possível sinal de reversão (ação “barata” demais).  
+📈 RSI > 70 + preço acima da SMA200 → possível sinal de exaustão (ação “esticada” demais).
 """)
 
-    # Parte didática da SMA/RSI já existente
-    st.markdown("### 💡 O que o gráfico está tentando te contar")
-    st.markdown("#### 🪜 1. Entendendo a SMA20 — “a linha da média”")
-    st.markdown("A **SMA20** é a média dos últimos 20 fechamentos — mostra a direção geral.")
-    st.markdown(f"👉 Em **{st.session_state['ticker_select']}**, o preço atual é **R$ {price:,.2f}**, cerca de **{delta20:+.2f}%** vs. SMA20."
-                .replace(",", "X").replace(".", ",").replace("X","."))
-    if delta20 <= -2:
-        st.warning("Ação **abaixo da média** — fraqueza de curto prazo.")
-    elif delta20 < 2:
-        st.info("**Próximo da média** — equilíbrio.")
-    else:
-        st.success("**Acima da média** — força de curto prazo.")
-    st.caption("Afastamentos grandes podem sinalizar **exagero** (corda esticada).")
-
-    st.markdown("#### ⚖️ 2. RSI(14) — “o termômetro da força”")
-    st.table(pd.DataFrame({
-        "Faixa": ["70 a 100", "50", "0 a 30"],
-        "Situação": ["Sobrecompra", "Neutro", "Sobrevenda"],
-        "O que significa": ["Pode corrigir", "Equilíbrio", "Pode reagir"]
-    }))
-    st.markdown(f"RSI(14) atual: **{rsi_val:.1f}**.")
-
-    st.markdown("#### 🧩 3. Juntando as informações")
-    if (delta20 <= -2) and (rsi_val <= 35):
-        st.info("Caiu bastante e **pode dar um respiro**.")
-    elif (delta20 >= 2) and (rsi_val >= 65):
-        st.warning("Subiu bastante e **pode descansar**.")
-    else:
-        st.info("**Equilíbrio** — sem sinal forte.")
 
 # ---- Tab 3: ML (treino/validação, KPIs, callouts)
 with tab3:
