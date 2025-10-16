@@ -1088,45 +1088,52 @@ with tab10:
             file_path = f"relatorio_{st.session_state['ticker_select']}.pdf"
             c = canvas.Canvas(file_path, pagesize=A4)
             W, H = A4
-            y = H - 2*cm
 
-            def draw_line(text, dy=0.8*cm, size=11, bold=False):
-                nonlocal y
+            # 👉 Helper sem 'nonlocal': retorna a nova posição y
+            def draw_line(c, text, y_pos, dy=0.8*cm, size=11, bold=False):
                 if bold:
                     c.setFont("Helvetica-Bold", size)
                 else:
                     c.setFont("Helvetica", size)
-                c.drawString(2*cm, y, text)
-                y -= dy
+                c.drawString(2*cm, y_pos, text)
+                return y_pos - dy
 
-            draw_line(title, size=14, bold=True, dy=1.0*cm)
-            draw_line(f"Ticker: {st.session_state['ticker_select']}")
-            draw_line(f"Período: {st.session_state['start_date']} a {st.session_state['end_date']}")
-            draw_line(f"Fechamento: R$ {price:,.2f}".replace(",", "X").replace(".", ",").replace("X","."))
-            draw_line(f"Δ vs SMA20: {delta20:+.2f}% — RSI(14): {rsi_val:.1f}")
-            if regime: draw_line(f"Regime: {regime}")
+            y_pos = H - 2*cm  # posição inicial
 
-            draw_line("—", dy=0.5*cm)
-            draw_line("Configurações de ML", bold=True)
-            draw_line(f"Horizonte: {int(st.session_state['horizon'])}d • Limiar: {st.session_state['thr_method_label']} • min_prob: {st.session_state['min_prob']:.2f}")
-            draw_line(f"Splits/Test_size: {int(st.session_state['splits'])}/{int(st.session_state['test_size'])} • Banda neutra: ±{st.session_state['neutral_band']:.2f}")
-            draw_line(f"Tendência(SMA200): {'ON' if st.session_state['use_trend'] else 'OFF'} • Contrarian(RSI<=30): {'ON' if st.session_state['allow_contrarian'] else 'OFF'}")
-            draw_line(f"Custo/Slippage (bps): {int(st.session_state['cost_bps'])}/{int(st.session_state['slip_bps'])} • Holding mínimo: {int(st.session_state['min_hold'])}d")
+            # Cabeçalho
+            y_pos = draw_line(c, title, y_pos, size=14, bold=True, dy=1.0*cm)
+            y_pos = draw_line(c, f"Ticker: {st.session_state['ticker_select']}", y_pos)
+            y_pos = draw_line(c, f"Período: {st.session_state['start_date']} a {st.session_state['end_date']}", y_pos)
+            y_pos = draw_line(c, f"Fechamento: R$ {price:,.2f}".replace(",", "X").replace(".", ",").replace("X","."), y_pos)
+            y_pos = draw_line(c, f"Δ vs SMA20: {delta20:+.2f}% — RSI(14): {rsi_val:.1f}", y_pos)
+            if regime:
+                y_pos = draw_line(c, f"Regime: {regime}", y_pos)
 
+            # Config de ML
+            y_pos = draw_line(c, "—", y_pos, dy=0.5*cm)
+            y_pos = draw_line(c, "Configurações de ML", y_pos, bold=True)
+            y_pos = draw_line(c, f"Horizonte: {int(st.session_state['horizon'])}d • Limiar: {st.session_state['thr_method_label']} • min_prob: {st.session_state['min_prob']:.2f}", y_pos)
+            y_pos = draw_line(c, f"Splits/Test_size: {int(st.session_state['splits'])}/{int(st.session_state['test_size'])} • Banda neutra: ±{st.session_state['neutral_band']:.2f}", y_pos)
+            y_pos = draw_line(c, f"Tendência(SMA200): {'ON' if st.session_state['use_trend'] else 'OFF'} • Contrarian(RSI<=30): {'ON' if st.session_state['allow_contrarian'] else 'OFF'}", y_pos)
+            y_pos = draw_line(c, f"Custo/Slippage (bps): {int(st.session_state['cost_bps'])}/{int(st.session_state['slip_bps'])} • Holding mínimo: {int(st.session_state['min_hold'])}d", y_pos)
+
+            # KPIs (se houver)
             if st.session_state.get("ml_trained") and st.session_state.get("ml_metrics"):
                 m = st.session_state["ml_metrics"]
-                draw_line("—", dy=0.5*cm)
-                draw_line("KPIs (fora da amostra)", bold=True)
-                draw_line(f"Acurácia: {m['accuracy']*100:.1f}% — Balanced Acc: {m['balanced_accuracy']*100:.1f}%")
-                draw_line(f"ROC AUC: {m['roc_auc']:.3f} — Brier: {m['brier']:.3f} — OOS: {m['n_oos']}")
+                y_pos = draw_line(c, "—", y_pos, dy=0.5*cm)
+                y_pos = draw_line(c, "KPIs (fora da amostra)", y_pos, bold=True)
+                y_pos = draw_line(c, f"Acurácia: {m['accuracy']*100:.1f}% — Balanced Acc: {m['balanced_accuracy']*100:.1f}%", y_pos)
+                y_pos = draw_line(c, f"ROC AUC: {m['roc_auc']:.3f} — Brier: {m['brier']:.3f} — OOS: {m['n_oos']}", y_pos)
 
+            # Observações
             if obs:
-                draw_line("—", dy=0.5*cm)
-                draw_line("Observações", bold=True)
+                y_pos = draw_line(c, "—", y_pos, dy=0.5*cm)
+                y_pos = draw_line(c, "Observações", y_pos, bold=True)
                 for line in obs.splitlines():
-                    draw_line(line, dy=0.6*cm, size=10)
+                    y_pos = draw_line(c, line, y_pos, dy=0.6*cm, size=10)
 
-            c.showPage(); c.save()
+            c.showPage()
+            c.save()
             with open(file_path, "rb") as f:
                 st.download_button("Baixar PDF", data=f.read(), file_name=file_path, mime="application/pdf")
             st.success("PDF gerado.")
